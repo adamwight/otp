@@ -285,22 +285,23 @@ start_new_child(int pipes[])
         ASSERT(proto.action == ErtsSysForkerProtoAction_Ack);
     }
 
-    DEBUG_PRINT("Set cwd to: '%s'",cwd);
+    if (wd) {
+        DEBUG_PRINT("Set wd to: '%s'",wd);
+        if (chdir(wd) < 0) {
+            int err = errno;
+            fprintf(stderr,"spawn: Could not cd to %s\r\n", wd);
+            _exit(err);
+        }
+    } else {
+        DEBUG_PRINT("Set cwd to: '%s'",cwd);
 
-    if (chdir(cwd) < 0) {
-        /* This is not good, it probably means that the cwd of
-           beam is invalid. We ignore it and try anyways as
-           the child might now need a cwd or the chdir below
-           could take us to a valid directory.
-        */
-    }
-
-    DEBUG_PRINT("Set wd to: '%s'",wd);
-
-    if (wd && chdir(wd) < 0) {
-        int err = errno;
-        fprintf(stderr,"spawn: Could not cd to %s\r\n", wd);
-        _exit(err);
+        if (chdir(cwd) < 0) {
+            /* This is not good, it probably means that the cwd of
+            beam is invalid. We ignore it and try anyways as
+            the child might now need a cwd or the chdir below
+            could take us to a valid directory.
+            */
+        }
     }
 
     DEBUG_PRINT("Do that forking business: '%s'",cmd);
