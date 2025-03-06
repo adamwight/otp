@@ -453,8 +453,6 @@ output_only(Config) when is_list(Config) ->
     Filename = filename:join(Dir, "output_only_stream"),
     Data = random_packet(35777, "echo"),
     output_and_verify(Config, ["-h0 -o", Filename], Data),
-    Wait_time = 500,
-    test_server:sleep(Wait_time),
     {ok, Written} = file:read_file(Filename),
     Data = binary_to_list(Written),
 
@@ -468,6 +466,8 @@ output_and_verify(Config, Options, Data) ->
     Command = lists:concat([PortTest, " " | Options]),
     Port = open_port({spawn, Command}, [out]),
     Port ! {self(), {command, Data}},
+    Wait_time = 500,
+    test_server:sleep(Wait_time),
     Port ! {self(), close},
     receive
         {Port, closed} -> ok;
@@ -689,11 +689,9 @@ count_fds(Config) when is_list(Config) ->
                               PortTest = port_test(Config),
                               Command = lists:concat([PortTest, " -n -f -o", Filename]),
                               Port = open_port({spawn, Command}, PortOpts),
-                              Port ! {self(), close},
-                              receive
-                                  {Port, closed} -> ok
-                              end,
                               test_server:sleep(500),
+                              Port ! {self(), close},
+                              receive {Port, closed} -> ok after 0 -> ok end,
                               {ok, Written} = file:read_file(Filename),
                               Written
                       end,

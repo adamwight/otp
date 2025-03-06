@@ -580,11 +580,10 @@ init([Notify, Options]) ->
                            binary, exit_status, stderr_to_stdout]);
             _ ->
                 Port = open_port({spawn_executable, Exec},
-                                 [{args, FinalArgs}, {env, Env}, hide, binary]),
-                %% peer can close the port before we get here which will cause
-                %%  port_close to throw. Catch this and ignore.
-                catch erlang:port_close(Port),
-                receive {'EXIT', Port, _} -> undefined end
+                                 [{args, FinalArgs}, {env, Env}, hide,
+                                  nouse_stdio]),
+                unlink(Port),
+                receive {'EXIT', Port, _} -> undefined after 0 -> undefined end
         end,
 
     %% Remove the default 'halt' shutdown option if present; the default is

@@ -286,7 +286,6 @@ driver(Timeout) ->
 	{Port,{data,[?TIMER]}} ->
 	    Stop = erlang:monotonic_time(microsecond),
 	    unlink(Port),
-	    true = erlang:port_close(Port),
 	    receive
 		{get_result, ?REG_NAME} ->
 		    ?REG_NAME ! #timeout_rec{pid = self(),
@@ -295,7 +294,8 @@ driver(Timeout) ->
 					     timeout_diff = to_diff(Timeout,
 								    Start,
 								    Stop)}
-	    end
+	    end,
+	    {badarg, _} = erlang:port_close(Port)
     end.
 
 bif_timer(Timeout) ->
@@ -451,7 +451,6 @@ start_node(Name) ->
     case open_port({spawn, CmdLine}, []) of
 	Port when is_port(Port) ->
 	    unlink(Port),
-	    erlang:port_close(Port),
 	    case ping_node(FullName, 50) of
 		pong -> FullName;
 		Other -> exit({failed_to_start_node, FullName, Other})
