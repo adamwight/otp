@@ -183,6 +183,7 @@ static ssize_t write_all(int fd, const char *buff, size_t size) {
     return pos;
 }
 
+static void kill_child(pid_t os_pid);
 static void kill_all_children(void);
 static int forker_hash_init(void);
 
@@ -626,6 +627,7 @@ main(int argc, char *argv[])
                 est.os_pid = proto.u.stop.os_pid;
                 es = hash_remove(forker_hash, &est);
                 if (es) {
+                    kill_child(es->os_pid);
                     free(es);
                 }
             } else {

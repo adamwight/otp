@@ -1850,6 +1850,7 @@ static ErlDrvSSizeT forker_control(ErlDrvData e, unsigned int cmd, char *buf,
         forker_deq(port_num, proto);
 #endif
     } else if (proto->action == ErtsSysForkerProtoAction_Stop) {
+        // Forward stop action to the forker.
         if ((res = write(forker_fd, (char*)proto, sizeof(*proto))) < 0) {
             if (errno != EAGAIN && errno != EINTR) {
                 erts_exit(ERTS_DUMP_EXIT, "Failed to write stop to erl_child_setup: %d\n", errno);
