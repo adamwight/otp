@@ -20,8 +20,8 @@
  * This file defines the interface between erts and child_setup.
  */
 
-#ifndef _ERL_UNIX_FORKER_H
-#define _ERL_UNIX_FORKER_H
+#ifndef _ERL_FORKER_H
+#define _ERL_FORKER_H
 
 #include "sys.h"
 
@@ -74,4 +74,4 @@ typedef struct ErtsSysForkerProto_ {
     } u;
 } ErtsSysForkerProto;
 
-#endif /* #ifndef _ERL_UNIX_FORKER_H */
+#endif /* #ifndef _ERL_FORKER_H */

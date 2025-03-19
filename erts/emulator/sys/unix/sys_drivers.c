@@ -75,7 +75,8 @@ static Eterm forker_port;
 #include "erl_sys_driver.h"
 #include "sys_uds.h"
 
-#include "erl_child_setup.h"
+#include "erl_forker.h"
+#include "sys_common_drivers.h"
 
 #if defined IOV_MAX
 #define MAXIOV IOV_MAX
@@ -193,11 +194,6 @@ erl_sys_late_init(void)
 
 /* II. Prototypes */
 
-/* II.I Spawn prototypes */
-static ErlDrvData spawn_start(ErlDrvPort, char*, SysDriverOpts*);
-static ErlDrvSSizeT spawn_control(ErlDrvData, unsigned int, char *,
-                                  ErlDrvSizeT, char **, ErlDrvSizeT);
-
 /* II.III FD prototypes */
 static ErlDrvData fd_start(ErlDrvPort, char*, SysDriverOpts*);
 static void fd_async(void *);
@@ -208,48 +204,9 @@ static void fd_stop(ErlDrvData);
 static void fd_flush(ErlDrvData);
 
 /* II.IV Common prototypes */
-static void stop(ErlDrvData);
-static void ready_input(ErlDrvData, ErlDrvEvent);
-static void ready_output(ErlDrvData, ErlDrvEvent);
-static void output(ErlDrvData, char*, ErlDrvSizeT);
-static void outputv(ErlDrvData, ErlIOVec*);
-static void stop_select(ErlDrvEvent, void*);
-
-/* II.V Forker prototypes */
-static ErlDrvData forker_start(ErlDrvPort, char*, SysDriverOpts*);
-static void forker_stop(ErlDrvData);
-static void forker_ready_input(ErlDrvData, ErlDrvEvent);
-static void forker_ready_output(ErlDrvData, ErlDrvEvent);
-static ErlDrvSSizeT forker_control(ErlDrvData, unsigned int, char *,
-                                   ErlDrvSizeT, char **, ErlDrvSizeT);
+static void outputv(ErlDrvData e, ErlIOVec* ev);
 
 /* III Driver entries */
-
-/* III.I The spawn driver */
-struct erl_drv_entry spawn_driver_entry = {
-    NULL,
-    spawn_start,
-    stop,
-    output,
-    ready_input,
-    ready_output,
-    "spawn",
-    NULL,
-    NULL,
-    spawn_control,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    ERL_DRV_EXTENDED_MARKER,
-    ERL_DRV_EXTENDED_MAJOR_VERSION,
-    ERL_DRV_EXTENDED_MINOR_VERSION,
-    ERL_DRV_FLAG_USE_PORT_LOCKING | ERL_DRV_FLAG_USE_INIT_ACK,
-    NULL, NULL,
-    stop_select
-};
 
 /* III.II The fd driver */
 struct erl_drv_entry fd_driver_entry = {
@@ -278,33 +235,7 @@ struct erl_drv_entry fd_driver_entry = {
     stop_select
 };
 
-/* III.III The forker driver */
-struct erl_drv_entry forker_driver_entry = {
-    NULL,
-    forker_start,
-    forker_stop,
-    NULL,
-    forker_ready_input,
-    forker_ready_output,
-    "spawn_forker",
-    NULL,
-    NULL,
-    forker_control,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    ERL_DRV_EXTENDED_MARKER,
-    ERL_DRV_EXTENDED_MAJOR_VERSION,
-    ERL_DRV_EXTENDED_MINOR_VERSION,
-    0,
-    NULL, NULL,
-    stop_select
-};
-
-/* Untility functions */
+/* Utility functions */
 
 static int set_blocking_data(ErtsSysDriverData *dd) {
 
@@ -466,7 +397,7 @@ static void *add_spawn_env_block(const erts_osenv_t *env, struct iovec *iov,
     return env_block;
 }
 
-static ErlDrvData spawn_start(ErlDrvPort port_num, char* name,
+ErlDrvData spawn_start(ErlDrvPort port_num, char* name,
                               SysDriverOpts* opts)
 {
 #define CMD_LINE_PREFIX_STR "exec "
@@ -726,7 +657,7 @@ static ErlDrvData spawn_start(ErlDrvPort port_num, char* name,
 #undef CMD_LINE_PREFIX_STR_SZ
 }
 
-static ErlDrvSSizeT spawn_control(ErlDrvData e, unsigned int cmd, char *buf,
+ErlDrvSSizeT spawn_control(ErlDrvData e, unsigned int cmd, char *buf,
                                   ErlDrvSizeT len, char **rbuf, ErlDrvSizeT rlen)
 {
     ErtsSysDriverData *dd = (ErtsSysDriverData*)e;
@@ -1031,7 +962,7 @@ static void fd_flush(ErlDrvData ev)
 /* Note that driver_data[fd].ifd == fd if the port was opened for reading, */
 /* otherwise (i.e. write only) driver_data[fd].ofd = fd.  */
 
-static void stop(ErlDrvData ev)
+void stop(ErlDrvData ev)
 {
     ErtsSysDriverData* dd = (ErtsSysDriverData*)ev;
     ErlDrvPort prt = dd->port_num;
@@ -1132,7 +1063,7 @@ static void outputv(ErlDrvData e, ErlIOVec* ev)
 }
 
 /* Used by spawn_driver */
-static void output(ErlDrvData e, char* buf, ErlDrvSizeT len)
+void output(ErlDrvData e, char* buf, ErlDrvSizeT len)
 {
     ErtsSysDriverData *dd = (ErtsSysDriverData*)e;
     ErlDrvPort ix = dd->port_num;
@@ -1259,7 +1190,7 @@ static int port_inp_failure(ErtsSysDriverData *dd, int res)
 /* initial start routine                        */
 /* ready_fd is the descriptor that is ready to read */
 
-static void ready_input(ErlDrvData e, ErlDrvEvent ready_fd)
+void ready_input(ErlDrvData e, ErlDrvEvent ready_fd)
 {
     ErtsSysDriverData *dd = (ErtsSysDriverData*)e;
     ErlDrvPort port_num;
@@ -1441,7 +1372,7 @@ static void ready_input(ErlDrvData e, ErlDrvEvent ready_fd)
 /* initial start routine                        */
 /* ready_fd is the descriptor that is ready to read */
 
-static void ready_output(ErlDrvData e, ErlDrvEvent ready_fd)
+void ready_output(ErlDrvData e, ErlDrvEvent ready_fd)
 {
     ErtsSysDriverData *dd = (ErtsSysDriverData*)e;
     ErlDrvPort ix = dd->port_num;
@@ -1488,7 +1419,7 @@ static void ready_output(ErlDrvData e, ErlDrvEvent ready_fd)
     return; /* 0; */
 }
 
-static void stop_select(ErlDrvEvent fd, void* _)
+void stop_select(ErlDrvEvent fd, void* _)
 {
     close((int)fd);
 }
@@ -1582,7 +1513,7 @@ void fd_ready_async(ErlDrvData drv_data,
 static int forker_fd;
 extern struct termios erl_sys_initial_tty_mode;
 
-static ErlDrvData forker_start(ErlDrvPort port_num, char* name,
+ErlDrvData forker_start(ErlDrvPort port_num, char* name,
                                SysDriverOpts* opts)
 {
 
@@ -1690,7 +1621,7 @@ static ErlDrvData forker_start(ErlDrvPort port_num, char* name,
     return (ErlDrvData)port_num;
 }
 
-static void forker_stop(ErlDrvData e)
+void forker_stop(ErlDrvData e)
 {
     /* we probably should do something here,
        the port has been closed by the user. */
@@ -1721,7 +1652,7 @@ static void forker_sigchld(Eterm port_id, int error)
                          (char*)proto, sizeof(*proto));
 }
 
-static void forker_ready_input(ErlDrvData e, ErlDrvEvent fd)
+void forker_ready_input(ErlDrvData e, ErlDrvEvent fd)
 {
     int res;
     ErtsSysForkerProto proto;
@@ -1761,7 +1692,7 @@ static void forker_ready_input(ErlDrvData e, ErlDrvEvent fd)
 
 }
 
-static void forker_ready_output(ErlDrvData e, ErlDrvEvent fd)
+void forker_ready_output(ErlDrvData e, ErlDrvEvent fd)
 {
     ErlDrvPort port_num = (ErlDrvPort)e;
 
@@ -1795,7 +1726,7 @@ static void forker_ready_output(ErlDrvData e, ErlDrvEvent fd)
 #endif
 }
 
-static ErlDrvSSizeT forker_control(ErlDrvData e, unsigned int cmd, char *buf,
+ErlDrvSSizeT forker_control(ErlDrvData e, unsigned int cmd, char *buf,
                                    ErlDrvSizeT len, char **rbuf, ErlDrvSizeT rlen)
 {
     static int first_call = 1;

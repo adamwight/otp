@@ -490,17 +490,12 @@ endif
 
 # ----------------------------------------------------------------------
 
-UNIX_ONLY_BUILDS =
-ifeq ($(ERLANG_OSTYPE), unix)
-UNIX_ONLY_BUILDS =	$(BINDIR)/$(CS_EXECUTABLE)
-endif
-
 .PHONY: all
 ifdef VOID_EMULATOR
 all:
 	@echo $(VOID_EMULATOR)' - omitted target all'
 else
-all: $(BINDIR)/$(EMULATOR_EXECUTABLE) $(BINDIR)/$(EMULATOR_LIB) $(UNIX_ONLY_BUILDS)
+all: $(BINDIR)/$(EMULATOR_EXECUTABLE) $(BINDIR)/$(EMULATOR_LIB) $(BINDIR)/$(CS_EXECUTABLE)
 endif
 
 $(BINDIR)/$(PRIMARY_EXECUTABLE): $(BINDIR)/$(FLAVOR_EXECUTABLE)
@@ -559,12 +554,10 @@ release_spec: all
 	$(INSTALL_DATA) $(RELEASE_INCLUDES) "$(RELEASE_PATH)/usr/include"
 	$(INSTALL_DATA) $(RELEASE_INCLUDES) "$(RELSYSDIR)/include"
 	$(INSTALL_PROGRAM) $(BINDIR)/$(EMULATOR_EXECUTABLE) "$(RELSYSDIR)/bin"
+	$(INSTALL_PROGRAM) $(BINDIR)/$(CS_EXECUTABLE) "$(RELSYSDIR)/bin"
 ifeq ($(RELEASE_LIBBEAM),yes)
 	$(INSTALL_DIR) "$(RELSYSDIR)/lib"
 	$(INSTALL_PROGRAM) $(BINDIR)/$(EMULATOR_LIB) "$(RELSYSDIR)/lib"
-endif
-ifeq ($(ERLANG_OSTYPE), unix)
-	$(INSTALL_PROGRAM) $(BINDIR)/$(CS_EXECUTABLE) "$(RELSYSDIR)/bin"
 endif
 endif
 
@@ -990,6 +983,7 @@ update_asmjit:
 # ----------------------------------------------------------------------
 # Specials
 #
+# FIXME: sys_uds is unix-only
 CS_OBJ = $(OBJDIR)/erl_child_setup.o $(OBJDIR)/sys_uds.o $(OBJDIR)/hash.o
 
 $(BINDIR)/$(CS_EXECUTABLE): $(TTF_DIR)/GENERATED $(PRELOAD_SRC) $(CS_OBJ) $(ERTS_LIB)

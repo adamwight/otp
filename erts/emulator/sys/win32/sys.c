@@ -527,32 +527,6 @@ static void ready_input(ErlDrvData, ErlDrvEvent);
 static void ready_output(ErlDrvData, ErlDrvEvent);
 static void stop_select(ErlDrvEvent, void*);
 
-struct erl_drv_entry spawn_driver_entry = {
-    spawn_init,
-    spawn_start,
-    stop,
-    output,
-    ready_input,
-    ready_output,
-    "spawn",
-    NULL, /* finish */
-    NULL, /* handle */
-    NULL, /* control */
-    NULL, /* timeout */
-    NULL, /* outputv */
-    NULL, /* ready_async */
-    NULL, /* flush */
-    NULL, /* call */
-    NULL, /* event */
-    ERL_DRV_EXTENDED_MARKER,
-    ERL_DRV_EXTENDED_MAJOR_VERSION,
-    ERL_DRV_EXTENDED_MINOR_VERSION,
-    0,	/* ERL_DRV_FLAGs */
-    NULL,
-    NULL, /* process_exit */
-    stop_select
-};
-
 #ifdef HARD_POLL_DEBUG
 extern void poll_debug_set_active_fd(ErtsSysFdType fd);
 extern void poll_debug_read_begin(ErtsSysFdType fd);

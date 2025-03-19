@@ -19,6 +19,8 @@
  */
 
 /*
+ * TODO: port from unix
+ *
  * This program is started at erts startup and all fork's that
  * have to be done are done in here. This is done for a couple
  * of reasons:
